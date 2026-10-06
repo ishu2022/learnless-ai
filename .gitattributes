@@ -1,0 +1,5 @@
+# Force LF line endings so shell scripts / configs work inside Linux containers
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary
