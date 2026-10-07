@@ -1,4 +1,4 @@
-"""Business logic for authentication: registration, login, refresh."""
+"""Business logic for authentication: registration, login, refresh, logout."""
 
 from datetime import datetime, timedelta, timezone
 
@@ -17,6 +17,7 @@ from app.models.user import User
 from app.repositories.refresh_token_repository import (
     create_refresh_token,
     get_valid_refresh_token,
+    revoke_refresh_token,
 )
 from app.repositories.user_repository import create_user, get_user_by_email, get_user_by_id
 from app.schemas.auth import LoginRequest, RefreshRequest, RegisterRequest
@@ -93,7 +94,7 @@ async def login_user(db: AsyncSession, data: LoginRequest) -> tuple[User, str, s
 async def refresh_access_token(db: AsyncSession, data: RefreshRequest) -> str:
     """Validate a refresh token and issue a NEW access token.
 
-    The refresh token itself is not rotated/replaced here — it stays
+    The refresh token itself is not rotated/replaced here - it stays
     valid until it naturally expires or is revoked via logout.
     """
     token_hash = hash_refresh_token(data.refresh_token)
@@ -113,3 +114,18 @@ async def refresh_access_token(db: AsyncSession, data: RefreshRequest) -> str:
         )
 
     return create_access_token(user.id)
+
+
+async def logout_user(db: AsyncSession, data: RefreshRequest) -> None:
+    """Revoke the given refresh token (ends that one login session).
+
+    Deliberately idempotent: if the token is unknown, expired, or already
+    revoked, nothing happens and no error is raised. The caller can't use
+    this endpoint to find out whether a token was ever real.
+    """
+    token_hash = hash_refresh_token(data.refresh_token)
+    stored_token = await get_valid_refresh_token(db, token_hash)
+
+    if stored_token is not None:
+        await revoke_refresh_token(db, stored_token)
+        await db.commit()

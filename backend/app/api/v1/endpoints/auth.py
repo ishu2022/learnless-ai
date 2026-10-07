@@ -50,6 +50,12 @@ async def refresh(
     return AccessTokenResponse(access_token=access_token)
 
 
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(payload: RefreshRequest, db: AsyncSession = Depends(get_db)) -> None:
+    """End a login session by revoking its refresh token. Always returns 204."""
+    await auth_service.logout_user(db, payload)
+
+
 @router.get("/me", response_model=UserRead)
 async def read_current_user(current_user: User = Depends(get_current_user)) -> UserRead:
     """Return the logged-in user. Requires a valid access token."""
