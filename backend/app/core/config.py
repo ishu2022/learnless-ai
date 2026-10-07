@@ -34,6 +34,12 @@ class Settings(BaseSettings):
     minio_bucket: str = "learnless"
     minio_secure: bool = False
 
+    # JWT (secret has no default: fails fast if missing, same as DB/MinIO secrets)
+    jwt_secret_key: str
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 30
+    refresh_token_expire_days: int = 30
+
     @property
     def cors_origins(self) -> list[str]:
         return [o.strip() for o in self.backend_cors_origins.split(",") if o.strip()]
